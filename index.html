@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#07041a" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="NEON RUSH: a fast three-lane neon endless runner. Dodge, jump, slide and collect energy orbs. Free to play, no login." />
+    <title>NEON RUSH</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <noscript><p class="noscript">NEON RUSH needs JavaScript enabled to run.</p></noscript>
+    <div id="game" class="game" data-state="loading">
+      <canvas id="canvas" class="canvas" role="img" aria-label="NEON RUSH game view"></canvas>
+
+      <!-- In-game HUD -->
+      <header id="hud" class="hud" hidden>
+        <div class="hud-block hud-score">
+          <span class="hud-label">Score</span>
+          <span id="hud-score" class="hud-value">0</span>
+          <span class="hud-sub">
+            <span id="hud-distance">0 m</span>
+            <span class="hud-dot" aria-hidden="true"></span>
+            <span class="orb-glyph" aria-hidden="true"></span><span id="hud-orbs">0</span><span class="sr-only"> energy orbs</span>
+          </span>
+        </div>
+        <div class="hud-right">
+          <div class="hud-block hud-level">
+            <span class="hud-label">Speed</span>
+            <span class="hud-value small">LV <span id="hud-level">1</span></span>
+          </div>
+          <button id="btn-mute" class="icon-btn" type="button" aria-label="Mute sound" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="ico-sound-on"><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" class="stroke" /></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="ico-sound-off"><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" class="stroke" /></svg>
+          </button>
+          <button id="btn-pause" class="icon-btn" type="button" aria-label="Pause">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+          </button>
+        </div>
+      </header>
+
+      <div id="toasts" class="toasts" aria-live="polite"></div>
+      <div id="countdown" class="countdown" aria-live="assertive" hidden></div>
+      <div id="hint" class="hint" hidden>
+        <span class="hint-desktop">Arrows / WASD to move &middot; Up or Space to jump &middot; Down to slide</span>
+        <span class="hint-touch">Swipe left / right to move &middot; up to jump &middot; down to slide</span>
+      </div>
+
+      <!-- Optional on-screen touch buttons -->
+      <div id="touchpad" class="touchpad" hidden>
+        <div class="pad-group">
+          <button type="button" class="pad-btn" data-action="left" aria-label="Move left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" class="stroke" /></svg></button>
+          <button type="button" class="pad-btn" data-action="right" aria-label="Move right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" class="stroke" /></svg></button>
+        </div>
+        <div class="pad-group">
+          <button type="button" class="pad-btn" data-action="slide" aria-label="Slide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7" class="stroke" /></svg></button>
+          <button type="button" class="pad-btn" data-action="jump" aria-label="Jump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7" class="stroke" /></svg></button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <section id="screen-loading" class="screen screen-loading" aria-label="Loading">
+        <div class="loader" aria-hidden="true"></div>
+        <p>Loading&hellip;</p>
+      </section>
+
+      <!-- Main menu -->
+      <section id="screen-menu" class="screen" aria-labelledby="logo" hidden>
+        <div class="card menu-card" data-no-swipe>
+          <h1 id="logo" class="logo" aria-label="Neon Rush">
+            <span class="logo-neon" aria-hidden="true">NEON</span>
+            <span class="logo-rush" aria-hidden="true">RUSH</span>
+          </h1>
+          <p class="tagline">Outrun the grid. Beat your best.</p>
+          <button id="btn-play" class="btn btn-primary btn-xl" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" /></svg>
+            Play
+          </button>
+          <div class="btn-row">
+            <button id="btn-howto" class="btn" type="button">How to play</button>
+            <button id="btn-settings" class="btn" type="button">Settings</button>
+            <button id="btn-fullscreen" class="btn" type="button" hidden>Fullscreen</button>
+          </div>
+          <dl class="stats">
+            <div><dt>Best score</dt><dd id="stat-best">0</dd></div>
+            <div><dt>Best distance</dt><dd id="stat-distance">0 m</dd></div>
+            <div><dt>Runs</dt><dd id="stat-runs">0</dd></div>
+          </dl>
+          <p class="controls-hint">
+            <span class="only-desktop"><kbd>&larr;</kbd><kbd>&rarr;</kbd> move &middot; <kbd>&uarr;</kbd>/<kbd>Space</kbd> jump &middot; <kbd>&darr;</kbd> slide &middot; <kbd>Esc</kbd> pause</span>
+            <span class="only-touch">Swipe to move, jump and slide</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- Pause -->
+      <section id="screen-pause" class="screen" aria-labelledby="pause-title" hidden>
+        <div class="card" data-no-swipe>
+          <h2 id="pause-title" class="screen-title">Paused</h2>
+          <button id="btn-resume" class="btn btn-primary btn-xl" type="button">Resume</button>
+          <div class="btn-row">
+            <button id="btn-restart-pause" class="btn" type="button">Restart</button>
+            <button id="btn-settings-pause" class="btn" type="button">Settings</button>
+            <button id="btn-menu-pause" class="btn" type="button">Main menu</button>
+          </div>
+          <p class="fine">Press <kbd>Esc</kbd> or <kbd>P</kbd> to resume</p>
+        </div>
+      </section>
+
+      <!-- Game over -->
+      <section id="screen-over" class="screen" aria-labelledby="over-title" hidden>
+        <div class="card over-card" data-no-swipe>
+          <p id="over-badge" class="best-badge" hidden>New personal best</p>
+          <h2 id="over-title" class="screen-title">Run over</h2>
+          <p class="over-score"><span class="hud-label">Score</span><span id="over-score">0</span></p>
+          <dl class="stats stats-over">
+            <div><dt>Distance</dt><dd id="over-distance">0 m</dd></div>
+            <div><dt>Energy orbs</dt><dd id="over-orbs">0</dd></div>
+            <div><dt>Best</dt><dd id="over-best">0</dd></div>
+          </dl>
+          <button id="btn-restart" class="btn btn-primary btn-xl" type="button">Run again</button>
+          <div class="btn-row">
+            <button id="btn-menu-over" class="btn" type="button">Main menu</button>
+          </div>
+          <p class="fine only-desktop">Press <kbd>Enter</kbd> to run again</p>
+        </div>
+      </section>
+
+      <!-- How to play -->
+      <div id="panel-howto" class="panel" role="dialog" aria-modal="true" aria-labelledby="howto-title" hidden>
+        <div class="card panel-card" data-no-swipe>
+          <h2 id="howto-title" class="screen-title">How to play</h2>
+          <p>Your runner sprints forward on its own. Survive as long as you can, read the hazards early and grab energy orbs.</p>
+          <ul class="hazards">
+            <li>
+              <svg viewBox="0 0 64 48" aria-hidden="true" class="hz hz-low">
+                <path d="M32 6l10 9M32 6L22 15" class="stroke amber" />
+                <rect x="8" y="24" width="5" height="20" class="fill post" /><rect x="51" y="24" width="5" height="20" class="fill post" />
+                <rect x="13" y="25" width="38" height="5" class="fill amber" /><rect x="13" y="35" width="38" height="3" class="fill amber" />
+              </svg>
+              <div><strong>Energy barrier</strong> (low, amber) &ndash; <b>JUMP</b> over it.</div>
+            </li>
+            <li>
+              <svg viewBox="0 0 64 48" aria-hidden="true" class="hz hz-gate">
+                <rect x="8" y="4" width="5" height="40" class="fill violet" /><rect x="51" y="4" width="5" height="40" class="fill violet" />
+                <rect x="8" y="4" width="48" height="4" class="fill violet" /><rect x="13" y="14" width="38" height="10" class="fill beam" />
+                <path d="M26 16l6 5 6-5" class="stroke dark" />
+              </svg>
+              <div><strong>Laser gate</strong> (high beam, violet) &ndash; <b>SLIDE</b> under it.</div>
+            </li>
+            <li>
+              <svg viewBox="0 0 64 48" aria-hidden="true" class="hz hz-block">
+                <rect x="12" y="6" width="40" height="38" class="fill block" /><path d="M18 12l28 26M46 12L18 38" class="stroke magenta" />
+              </svg>
+              <div><strong>Barricades &amp; freight pods</strong> (tall, crossed or striped) &ndash; <b>CHANGE LANE</b>. They cannot be jumped.</div>
+            </li>
+            <li>
+              <svg viewBox="0 0 64 48" aria-hidden="true" class="hz hz-orb">
+                <path d="M32 8l10 16-10 16-10-16z" class="fill orb" />
+              </svg>
+              <div><strong>Energy orbs</strong> &ndash; +10 points each. Arcs of orbs show the ideal jump.</div>
+            </li>
+          </ul>
+          <div class="controls-grid">
+            <div>
+              <h3>Keyboard</h3>
+              <p><kbd>&larr;</kbd>/<kbd>A</kbd> left &middot; <kbd>&rarr;</kbd>/<kbd>D</kbd> right<br /><kbd>&uarr;</kbd>/<kbd>W</kbd>/<kbd>Space</kbd> jump &middot; <kbd>&darr;</kbd>/<kbd>S</kbd> slide<br /><kbd>Esc</kbd>/<kbd>P</kbd> pause</p>
+            </div>
+            <div>
+              <h3>Touch</h3>
+              <p>Swipe left or right to change lane, up to jump, down to slide. On-screen buttons can be enabled in Settings.</p>
+            </div>
+          </div>
+          <p class="fine">Score: 1 point per metre (more at higher speed levels) + 10 per orb + 50 for a last-moment dodge. Slide while airborne to drop fast.</p>
+          <button class="btn btn-primary" type="button" data-close>Got it</button>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div id="panel-settings" class="panel" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+        <div class="card panel-card" data-no-swipe>
+          <h2 id="settings-title" class="screen-title">Settings</h2>
+          <form id="settings-form" class="settings">
+            <label class="setting switch">
+              <span>Sound</span>
+              <input id="set-sound" type="checkbox" role="switch" />
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+            <label class="setting">
+              <span>Music volume</span>
+              <input id="set-music" type="range" min="0" max="100" step="5" />
+            </label>
+            <label class="setting">
+              <span>Effects volume</span>
+              <input id="set-sfx" type="range" min="0" max="100" step="5" />
+            </label>
+            <label class="setting">
+              <span>Reduced motion</span>
+              <select id="set-motion">
+                <option value="system">Match system</option>
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+            </label>
+            <label class="setting">
+              <span>Graphics</span>
+              <select id="set-quality">
+                <option value="auto">Auto</option>
+                <option value="high">High</option>
+                <option value="low">Low (faster)</option>
+              </select>
+            </label>
+            <label class="setting switch">
+              <span>On-screen touch buttons</span>
+              <input id="set-touch" type="checkbox" role="switch" />
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </form>
+          <p id="storage-note" class="fine warn" hidden>Saving is unavailable in this browser mode. Settings and records last until you close the game.</p>
+          <div class="btn-row">
+            <button id="btn-reset-records" class="btn btn-danger" type="button">Reset records</button>
+            <button class="btn btn-primary" type="button" data-close>Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
